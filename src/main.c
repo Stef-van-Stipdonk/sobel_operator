@@ -4,38 +4,112 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
-char *image_buffer;
+typedef struct {
+  struct {
+    uint8_t type_len;
+    char *type_string;
+  } type;
+  uint32_t height;
+  uint32_t width;
+  uint32_t gradient_depth;
+} image_info_t;
 
-void get_image_type() {
-  char *type_string = malloc(3 * sizeof(char));
-  strncpy(type_string, image_buffer, 2);
-  type_string[2] = '\0';
+FILE *image_file;
 
-  if (strcmp(type_string, "P2") != 0) {
-    printf("Incorrect filetype");
+void skip_unwanted_characters(FILE *image_file) {
+  int ch;
+  while ((ch = fgetc(image_file)) != EOF) {
+    if (ch == '#') {
+      while ((ch = fgetc(image_file)) != EOF && ch != '\n')
+        ;
+    } else if (ch == '\n' || ch == '\r') {
+      continue;
+    } else {
+      ungetc(ch, image_file);
+      break;
+    }
   }
-  free(type_string);
+}
+
+void print_image_info(image_info_t info) {
+  printf("type: %s\n", info.type.type_string);
+  printf("dimensions: w%u h%u\n", info.width, info.height);
+  printf("gradient_depth: %u\n", info.gradient_depth);
+}
+
+char *read_ascii_value(FILE *image_file) {
+  skip_unwanted_characters(image_file);
+
+  char buffer[20];
+  int i = 0;
+  int ch;
+  while ((ch = fgetc(image_file)) != EOF && ch != '\n' && ch != '\r' &&
+         ch != ' ') {
+    buffer[i++] = ch;
+  }
+  buffer[i] = '\0';
+
+  return strdup(buffer);
+}
+
+image_info_t *get_image_info() {
+  image_info_t *image_info = malloc(sizeof(image_info_t));
+  if (!image_info) {
+    perror("Failed to allocate memory");
+    return NULL;
+  }
+
+  skip_unwanted_characters(image_file);
+
+  image_info->type.type_len = 2;
+  image_info->type.type_string = malloc(image_info->type.type_len + 1);
+  if (!image_info->type.type_string) {
+    perror("Failed to allocate memory for type_string");
+    free(image_info);
+    return NULL;
+  }
+  fread(image_info->type.type_string, sizeof(char), image_info->type.type_len,
+        image_file);
+  image_info->type.type_string[image_info->type.type_len] = '\0';
+
+  char *width_str = read_ascii_value(image_file);
+  char *height_str = read_ascii_value(image_file);
+  char *gradient_depth_str = read_ascii_value(image_file);
+
+  if (width_str && height_str && gradient_depth_str) {
+    image_info->width = strtoul(width_str, NULL, 10);
+    image_info->height = strtoul(height_str, NULL, 10);
+    image_info->gradient_depth = strtoul(gradient_depth_str, NULL, 10);
+  }
+
+  free(width_str);
+  free(height_str);
+  free(gradient_depth_str);
+
+  return image_info;
 }
 
 int main(int argc, char **args) {
-  FILE *image_file = fopen(args[1], "r");
+  if (argc < 2) {
+    fprintf(stderr, "Usage: %s <image_file>\n", args[0]);
+    exit(EXIT_FAILURE);
+  }
 
+  image_file = fopen(args[1], "r");
   if (NULL == image_file) {
     printf("%d: %s", errno, strerror(errno));
     exit(EXIT_FAILURE);
   }
 
-  fseek(image_file, 0, SEEK_END);
-  long fsize = ftell(image_file);
-  fseek(image_file, 0, SEEK_SET); /* same as rewind(f); */
+  image_info_t *header = get_image_info();
+  if (header) {
+    print_image_info(*header);
+    free(header->type.type_string);
+    free(header);
+  }
 
-  image_buffer = malloc(fsize + 1);
-  fread(image_buffer, fsize, 1, image_file);
   fclose(image_file);
-
-  image_buffer[fsize] = 0;
-
-  get_image_type();
-  free(image_buffer);
+  return 0;
 }
