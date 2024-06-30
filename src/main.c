@@ -11,7 +11,7 @@ typedef struct {
   uint32_t height;
   uint32_t width;
   uint32_t gradient_depth;
-} image_info_t;
+} image_header_t;
 
 FILE *image_file;
 
@@ -30,10 +30,10 @@ void skip_unwanted_characters(FILE *image_file) {
   }
 }
 
-void print_image_info(image_info_t info) {
-  printf("type: %s\n", info.type_string);
-  printf("dimensions: w%u h%u\n", info.width, info.height);
-  printf("gradient_depth: %u\n", info.gradient_depth);
+void print_image_header(image_header_t header) {
+  printf("type: %s\n", header.type_string);
+  printf("dimensions: w%u h%u\n", header.width, header.height);
+  printf("gradient_depth: %u\n", header.gradient_depth);
 }
 
 char *read_ascii_value(FILE *image_file) {
@@ -51,39 +51,38 @@ char *read_ascii_value(FILE *image_file) {
   return strdup(buffer);
 }
 
-image_info_t *get_image_info() {
-  image_info_t *image_info = malloc(sizeof(image_info_t));
-  if (!image_info) {
+image_header_t *get_image_header() {
+  image_header_t *image_header = malloc(sizeof(image_header_t));
+  if (!image_header) {
     perror("Failed to allocate memory");
     return NULL;
   }
 
   skip_unwanted_characters(image_file);
-
-  image_info->type_string = malloc(3 * sizeof(char));
-  if (!image_info->type_string) {
+  image_header->type_string = malloc(3 * sizeof(char));
+  if (!image_header->type_string) {
     perror("Failed to allocate memory for type_string");
-    free(image_info);
+    free(image_header);
     return NULL;
   }
-  fread(image_info->type_string, sizeof(char), 2, image_file);
-  image_info->type_string[2] = '\0';
+  fread(image_header->type_string, sizeof(char), 2, image_file);
+  image_header->type_string[2] = '\0';
 
   char *width_str = read_ascii_value(image_file);
   char *height_str = read_ascii_value(image_file);
   char *gradient_depth_str = read_ascii_value(image_file);
 
   if (width_str && height_str && gradient_depth_str) {
-    image_info->width = strtoul(width_str, NULL, 10);
-    image_info->height = strtoul(height_str, NULL, 10);
-    image_info->gradient_depth = strtoul(gradient_depth_str, NULL, 10);
+    image_header->width = strtoul(width_str, NULL, 10);
+    image_header->height = strtoul(height_str, NULL, 10);
+    image_header->gradient_depth = strtoul(gradient_depth_str, NULL, 10);
   }
 
   free(width_str);
   free(height_str);
   free(gradient_depth_str);
 
-  return image_info;
+  return image_header;
 }
 
 int main(int argc, char **args) {
@@ -98,9 +97,9 @@ int main(int argc, char **args) {
     exit(EXIT_FAILURE);
   }
 
-  image_info_t *header = get_image_info();
+  image_header_t *header = get_image_header();
   if (header) {
-    print_image_info(*header);
+    print_image_header(*header);
     free(header->type_string);
     free(header);
   }
