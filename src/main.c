@@ -7,10 +7,7 @@
 #include <sys/types.h>
 
 typedef struct {
-  struct {
-    uint8_t type_len;
-    char *type_string;
-  } type;
+  char *type_string;
   uint32_t height;
   uint32_t width;
   uint32_t gradient_depth;
@@ -34,7 +31,7 @@ void skip_unwanted_characters(FILE *image_file) {
 }
 
 void print_image_info(image_info_t info) {
-  printf("type: %s\n", info.type.type_string);
+  printf("type: %s\n", info.type_string);
   printf("dimensions: w%u h%u\n", info.width, info.height);
   printf("gradient_depth: %u\n", info.gradient_depth);
 }
@@ -63,16 +60,14 @@ image_info_t *get_image_info() {
 
   skip_unwanted_characters(image_file);
 
-  image_info->type.type_len = 2;
-  image_info->type.type_string = malloc(image_info->type.type_len + 1);
-  if (!image_info->type.type_string) {
+  image_info->type_string = malloc(3 * sizeof(char));
+  if (!image_info->type_string) {
     perror("Failed to allocate memory for type_string");
     free(image_info);
     return NULL;
   }
-  fread(image_info->type.type_string, sizeof(char), image_info->type.type_len,
-        image_file);
-  image_info->type.type_string[image_info->type.type_len] = '\0';
+  fread(image_info->type_string, sizeof(char), 2, image_file);
+  image_info->type_string[2] = '\0';
 
   char *width_str = read_ascii_value(image_file);
   char *height_str = read_ascii_value(image_file);
@@ -106,7 +101,7 @@ int main(int argc, char **args) {
   image_info_t *header = get_image_info();
   if (header) {
     print_image_info(*header);
-    free(header->type.type_string);
+    free(header->type_string);
     free(header);
   }
 
