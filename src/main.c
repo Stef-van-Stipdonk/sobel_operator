@@ -79,7 +79,7 @@ image_header_t *get_image_header() {
 const int8_t gx[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
 const int8_t gy[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
 
-void apply_sobel(image_header_t *header) {
+void apply_sobel(image_header_t *header, FILE *output_file) {
   if (!header) {
     fprintf(stderr, "Invalid image header\n");
     return;
@@ -132,13 +132,13 @@ void apply_sobel(image_header_t *header) {
     }
   }
 
-  printf("P2\n%u %u\n%u\n", header->width, header->height,
-         header->gradient_depth);
+  fprintf(output_file, "P2\n%u %u\n%u\n", header->width, header->height,
+          header->gradient_depth);
   for (uint32_t y = 0; y < header->height; y++) {
     for (uint32_t x = 0; x < header->width; x++) {
-      printf("%d ", sobel_image[y * header->width + x]);
+      fprintf(output_file, "%d ", sobel_image[y * header->width + x]);
     }
-    printf("\n");
+    fprintf(output_file, "\n");
   }
 
   free(image_array);
@@ -153,13 +153,19 @@ int main(int argc, char **args) {
 
   image_file = fopen(args[1], "r");
   if (NULL == image_file) {
-    printf("%d: %s", errno, strerror(errno));
+    printf("inputfile: %d: %s", errno, strerror(errno));
     exit(EXIT_FAILURE);
+  }
+
+  errno = 0;
+  FILE *output_file = fopen(args[2], "w");
+  if (NULL == output_file) {
+    printf("outputfile: %d: %s", errno, strerror(errno));
   }
 
   image_header_t *header = get_image_header();
   if (header) {
-    apply_sobel(header);
+    apply_sobel(header, output_file);
     free(header);
   } else {
     fprintf(stderr, "Failed to get image header\n");

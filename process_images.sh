@@ -1,7 +1,7 @@
 #!/bin/bash
 
-IMAGE_DIR="./grayscaled_images"
-OUTPUT_DIR="./sobel_image"
+IMAGE_DIR="./initial_pgm_files"
+OUTPUT_DIR="./sobel_pgm_files"
 
 mkdir -p "$OUTPUT_DIR"
 
@@ -11,7 +11,7 @@ do
         filename=$(basename "$img")
         base="sobel_${filename%.pgm}"
         echo "Processing $img"
-        ./a.out "$img" > "$OUTPUT_DIR/${base}.pgm"
+        ./a.out "$img" "$OUTPUT_DIR/${base}.pgm"
     else
         echo "No .pgm files found in $IMAGE_DIR"
     fi
