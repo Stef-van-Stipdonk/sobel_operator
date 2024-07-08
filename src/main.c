@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <math.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,9 +146,32 @@ void apply_sobel(image_header_t *header, FILE *output_file) {
   free(sobel_image);
 }
 
+bool ends_width(const char *str, const char *suffix) {
+  int str_len = strlen(str);
+  int suffix_len = strlen(suffix);
+
+  if (str_len < suffix_len) {
+    return false;
+  }
+
+  return !strncmp(str - str_len + suffix_len, suffix, suffix_len);
+}
+
 int main(int argc, char **args) {
+  bool ascii_pgm_file = false;
+  bool png_file = false;
+
   if (argc < 2) {
     fprintf(stderr, "Usage: %s <image_file>\n", args[0]);
+    exit(EXIT_FAILURE);
+  }
+
+  if (ends_width(args[1], ".ascii.pmg")) {
+    ascii_pgm_file = true;
+  } else if (ends_width(args[1], ".png")) {
+    png_file = true;
+  } else {
+    fprintf(stderr, "Unknown filetype: %s", args[1]);
     exit(EXIT_FAILURE);
   }
 
@@ -163,12 +187,18 @@ int main(int argc, char **args) {
     printf("outputfile: %d: %s", errno, strerror(errno));
   }
 
-  image_header_t *header = get_image_header();
-  if (header) {
-    apply_sobel(header, output_file);
-    free(header);
+  if (ascii_pgm_file) {
+    image_header_t *header = get_image_header();
+    if (header) {
+      apply_sobel(header, output_file);
+      free(header);
+    } else {
+      fprintf(stderr, "Failed to get image header\n");
+    }
+  } else if (png_file) {
+
   } else {
-    fprintf(stderr, "Failed to get image header\n");
+    fprintf(stderr, "Unknown filetype: %s", args[1]);
   }
 
   fclose(image_file);

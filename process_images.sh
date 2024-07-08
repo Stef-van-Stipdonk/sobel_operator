@@ -1,6 +1,6 @@
 #!/bin/bash
 
-IMAGE_DIR="./initial_pgm_files"
+IMAGE_DIR="./initial_pgm_files/ascii.pgm"
 OUTPUT_DIR="./sobel_pgm_files"
 
 mkdir -p "$OUTPUT_DIR"
